@@ -1,0 +1,2144 @@
+<!DOCTYPE html>
+<html lang="en" id="app-html" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>E Cart Shopping Store</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Cashfree Web SDK v3 Integration -->
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { -webkit-tap-highlight-color: transparent; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 dark:bg-gray-950 dark:text-gray-100 min-h-screen pt-16 pb-24 font-sans font-medium" id="app-body">
+
+    <!-- TOP FIXED HEADER -->
+    <header class="fixed top-0 left-0 right-0 h-14 bg-blue-600 dark:bg-blue-900 text-white px-4 flex justify-between items-center shadow-md z-40">
+        <div class="flex items-center space-x-2">
+            <button id="global-back-btn" onclick="handleBackNavigation()" class="hidden mr-2 text-white text-lg focus:outline-none">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <span id="header-title" data-i18n="store_title" class="font-bold text-lg">E Cart Store</span>
+        </div>
+        <div class="flex items-center space-x-2 text-xs bg-blue-700 dark:bg-blue-950 px-2.5 py-1 rounded-full font-bold">
+            <span class="h-2 w-2 rounded-full bg-green-400 inline-block animate-pulse"></span>
+            <span data-i18n="online_status">Online</span>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTENT AREA -->
+    <main class="px-4">
+
+        <!-- ================= 1. HOME TAB ================= -->
+        <div id="tab-home" class="tab-content space-y-4 animate-fade-in">
+            
+            <!-- Banner Carousel Slider -->
+            <div class="relative w-full h-40 bg-gray-200 dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm">
+                <div id="carousel-container" class="w-full h-full flex transition-transform duration-500 ease-in-out">
+                    <div class="w-full h-full flex-shrink-0 flex items-center justify-center text-xs text-gray-400">Loading Banners...</div>
+                </div>
+                <div id="carousel-dots" class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1.5 z-10"></div>
+            </div>
+
+            <!-- Search Bar Inline -->
+            <div class="flex items-center space-x-2 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-xl p-2.5 shadow-sm">
+                <i class="fas fa-magnifying-glass text-gray-400 shrink-0"></i>
+                <input type="text" id="search-input" oninput="handleSearchFilter()" placeholder="Search products, items..." class="flex-1 min-w-0 bg-transparent text-sm focus:outline-none dark:text-white">
+                <div class="h-5 w-px bg-gray-200 dark:bg-gray-800 shrink-0"></div>
+                <!-- Price Sorting Selector -->
+                <select id="sort-price" onchange="handleSearchFilter()" class="bg-transparent text-xs font-bold text-blue-600 dark:text-blue-400 focus:outline-none cursor-pointer shrink-0 font-medium">
+                    <option value="standard" class="text-gray-900 dark:text-gray-100 dark:bg-gray-900">Standard</option>
+                    <option value="low" class="text-gray-900 dark:text-gray-100 dark:bg-gray-900">Low Price</option>
+                    <option value="high" class="text-gray-900 dark:text-gray-100 dark:bg-gray-900">High Price</option>
+                </select>
+            </div>
+
+            <!-- Category Filter Selector Dropdown -->
+            <div>
+                <label data-i18n="category_label" class="block text-[10px] font-bold text-gray-400 uppercase">Category</label>
+                <select id="filter-category" onchange="handleSearchFilter()" class="mt-1 block w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2.5 text-xs dark:text-white focus:outline-none font-bold">
+                    <option value="all" data-i18n="all_categories">All Categories</option>
+                </select>
+            </div>
+
+            <!-- Catalog Product Grid -->
+            <div class="space-y-2 pb-6">
+                <p data-i18n="top_catalog" class="text-xs font-bold text-gray-400 uppercase tracking-wider">Top Catalog</p>
+                <div class="grid grid-cols-2 gap-3" id="products-grid">
+                    <div class="col-span-2 text-center py-12 text-gray-400 text-xs" data-i18n="loading_catalog">Loading items catalog...</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= 2. CART TAB ================= -->
+        <div id="tab-cart" class="tab-content hidden space-y-4">
+            
+            <!-- Step Progress Indicator -->
+            <div class="flex justify-between items-center text-center bg-white dark:bg-gray-900 p-3 rounded-xl border dark:border-gray-800 shadow-sm text-[10px] font-bold uppercase tracking-wider shrink-0">
+                <div id="step-indicator-1" data-i18n="shopping_bag" class="text-blue-600 flex-1 font-bold">1. Shopping Bag</div>
+                <i class="fas fa-chevron-right text-gray-300 dark:text-gray-700"></i>
+                <div id="step-indicator-2" data-i18n="shipping_info" class="text-gray-400 flex-1">2. Shipping Info</div>
+                <i class="fas fa-chevron-right text-gray-300 dark:text-gray-700"></i>
+                <div id="step-indicator-3" data-i18n="payment_promo" class="text-gray-400 flex-1">3. Payment & Promo</div>
+            </div>
+
+            <!-- STEP 1: SHOPPING BAG REVIEW -->
+            <div id="checkout-step-1" class="space-y-4 animate-fade-in">
+                <div id="cart-items-list" class="space-y-3">
+                    <!-- Dynamic Cart elements injected here -->
+                </div>
+                <div id="step-1-action" class="hidden">
+                    <button onclick="goToStep(2)" class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold text-sm shadow">
+                        <span data-i18n="proceed_shipping">Proceed to Shipping Details</span> <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: SHIPPING ADDRESS FILL -->
+            <div id="checkout-step-2" class="hidden space-y-4 animate-fade-in">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 space-y-3.5 shadow-sm text-xs">
+                    <h3 data-i18n="del_profile_title" class="font-bold text-sm text-blue-600">Select Delivery Profile</h3>
+                    
+                    <!-- Saved Addresses Selector -->
+                    <div id="checkout-address-profiles" class="flex space-x-2 overflow-x-auto no-scrollbar py-1">
+                        <span data-i18n="saved_addr_none" class="text-gray-400 text-[10px]">No saved address profile found.</span>
+                    </div>
+
+                    <div class="border-t dark:border-gray-800 pt-3 space-y-3">
+                        <input type="text" id="cust-name" required placeholder="Receiver Full Name (Mandatory)" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none">
+                        <input type="tel" id="cust-phone" required placeholder="Contact Mobile Number (Mandatory)" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none">
+                        <input type="text" id="cust-building" required placeholder="Building / Apartment Name (Mandatory)" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none">
+                        <input type="text" id="cust-landmark" placeholder="Landmark (e.g. Near Temple) - Optional" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none">
+                        
+                        <!-- Pincode Verification -->
+                        <div>
+                            <input type="text" id="cust-pin" required oninput="verifyPincodeAndFetchDetails(this.value)" placeholder="6-digit Area Pincode (Mandatory)" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none">
+                            <span id="pincode-feedback" class="text-[10px] font-bold block mt-1"></span>
+                        </div>
+
+                        <!-- Auto Populated Location Fields -->
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="text" id="cust-city" readonly placeholder="City" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-gray-800 p-2.5 text-xs text-gray-500 dark:text-gray-300 focus:outline-none font-bold">
+                            <input type="text" id="cust-district" readonly placeholder="District" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-gray-800 p-2.5 text-xs text-gray-500 dark:text-gray-300 focus:outline-none font-bold">
+                            <input type="text" id="cust-state" readonly placeholder="State" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-100 dark:bg-gray-800 p-2.5 text-xs text-gray-500 dark:text-gray-300 focus:outline-none font-bold">
+                        </div>
+
+                        <textarea id="cust-address" required rows="2" placeholder="Full Delivery Address Details (Mandatory)" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none"></textarea>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="goToStep(1)" data-i18n="back_to_bag" class="w-full py-3 bg-gray-300 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg font-bold text-xs font-medium">
+                        Back to Bag
+                    </button>
+                    <button onclick="validateStep2AndProceed()" data-i18n="choose_payments" class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold text-xs shadow font-medium">
+                        Choose Payments <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 3: PAYMENT & PROMO CHOOSE -->
+            <div id="checkout-step-3" class="hidden space-y-4 animate-fade-in">
+                <div class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm text-xs">
+                    
+                    <!-- Payment Mode Selection -->
+                    <div class="space-y-2">
+                        <label data-i18n="payment_method" class="block text-[10px] font-bold text-gray-400 uppercase">Payment Method</label>
+                        <div class="flex space-x-4">
+                            <label class="flex items-center space-x-1.5 cursor-pointer">
+                                <input type="radio" name="pay-mode" value="online" checked class="text-blue-600">
+                                <span data-i18n="online_pay" class="dark:text-gray-200">Online Pay</span>
+                            </label>
+                            <label class="flex items-center space-x-1.5 cursor-pointer" id="cod-radio-wrapper">
+                                <input type="radio" id="cod-radio-input" name="pay-mode" value="COD" class="text-blue-600">
+                                <span id="cod-label-text" data-i18n="cod_pay" class="dark:text-gray-200">Cash on Delivery (COD)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Bill summary -->
+                    <div class="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1.5">
+                        <div class="flex justify-between">
+                            <span data-i18n="total_items_price" class="text-gray-400">Total Items Price</span>
+                            <span id="bill-subtotal" class="font-bold dark:text-white">₹0</span>
+                        </div>
+                        <div class="flex justify-between text-purple-600 dark:text-purple-400">
+                            <span data-i18n="coupon_discount">Coupon Discount</span>
+                            <span id="bill-discount" class="font-bold">-₹0</span>
+                        </div>
+                        <div class="flex justify-between text-green-600 dark:text-green-400">
+                            <span data-i18n="delivery_charge">Delivery charge</span>
+                            <span class="font-bold" data-i18n="free_text">FREE</span>
+                        </div>
+                        <div class="flex justify-between border-t border-gray-100 dark:border-gray-800 pt-2 text-sm font-bold">
+                            <span data-i18n="grand_total">Grand Order Total</span>
+                            <span id="bill-final" class="text-blue-600 dark:text-blue-400">₹0</span>
+                        </div>
+                    </div>
+
+                    <!-- Apply Coupons -->
+                    <div class="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2">
+                        <label data-i18n="apply_coupon_label" class="block text-[10px] font-bold text-gray-400 uppercase">Apply Promo Coupon</label>
+                        <button type="button" onclick="openSubFullScreen('sub-checkout-coupons', 'Choose Store Coupon')" class="w-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 p-3.5 rounded-xl border border-purple-100 dark:border-purple-900 flex justify-between items-center font-bold">
+                            <span><i class="fas fa-ticket-alt mr-2 text-sm"></i> <span id="checkout-coupon-status-text" data-i18n="select_coupon_placeholder">Select Coupon from List</span></span>
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </button>
+                        <span id="promo-feedback" class="text-[10px] font-bold mt-1 block"></span>
+                    </div>
+
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="goToStep(2)" data-i18n="back_to_address" class="w-full py-3 bg-gray-300 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg font-bold text-xs font-medium">
+                        Back to Address
+                    </button>
+                    <button onclick="submitFinalOrder()" data-i18n="confirm_place_order" class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold text-xs shadow hover:bg-blue-700 transition font-medium">
+                        Confirm & Place Order
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= 3. ORDER HISTORY TAB ================= -->
+        <div id="tab-orders" class="tab-content hidden space-y-4">
+            <h2 data-i18n="track_orders" class="text-xl font-bold">Track Your Orders</h2>
+            
+            <div class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 space-y-3 shadow-sm">
+                <p class="text-xs text-gray-400 font-semibold uppercase">Enter Phone Number to see History</p>
+                <div class="flex space-x-2">
+                    <input type="tel" id="track-phone-input" placeholder="e.g. 9876543210" class="flex-1 border dark:border-gray-800 p-2.5 rounded-lg bg-gray-55 dark:bg-gray-800 dark:text-white text-sm focus:outline-none font-medium">
+                    <button type="button" onclick="loadOrderHistory()" data-i18n="search_btn" class="bg-blue-600 text-white px-4 rounded-lg font-bold text-xs font-medium">Search</button>
+                </div>
+            </div>
+
+            <div id="order-history-list" class="space-y-3">
+                <p class="text-center text-xs text-gray-400 py-8">No track history loaded.</p>
+            </div>
+        </div>
+
+        <!-- ================= 4. SETTINGS TAB ================= -->
+        <div id="tab-settings" class="tab-content hidden space-y-4 animate-fade-in">
+            <h2 data-i18n="settings_panel" class="text-xl font-bold">Settings Panel</h2>
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800 shadow-sm">
+                
+                <!-- Profile Link -->
+                <button onclick="openSubFullScreen('sub-saved-addresses', 'Profile Fill')" class="w-full p-4 flex justify-between items-center text-left hover:bg-gray-55 dark:hover:bg-gray-800 transition font-medium">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-id-card text-blue-500 text-lg"></i>
+                        <div>
+                            <h3 data-i18n="profile_fill" class="font-bold text-sm text-gray-800 dark:text-gray-200">Profile Fill</h3>
+                            <p data-i18n="profile_fill_sub" class="text-[10px] text-gray-400">Save multiple address profiles for checkout</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </button>
+
+                <!-- Language link -->
+                <button onclick="openSubFullScreen('sub-language-selector', 'Language Option')" class="w-full p-4 flex justify-between items-center text-left hover:bg-gray-55 dark:hover:bg-gray-800 transition font-medium">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-language text-purple-500 text-lg"></i>
+                        <div>
+                            <h3 data-i18n="lang_option" class="font-bold text-sm text-gray-800 dark:text-gray-200">Language Option</h3>
+                            <p data-i18n="lang_option_sub" class="text-[10px] text-gray-400">Choose application language</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </button>
+
+                <!-- Visual Theme Link -->
+                <button onclick="openSubFullScreen('sub-theme-selector', 'Choose Dark Theme')" class="w-full p-4 flex justify-between items-center text-left hover:bg-gray-55 dark:hover:bg-gray-800 transition font-medium">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-palette text-yellow-500 text-lg"></i>
+                        <div>
+                            <h3 data-i18n="choose_theme" class="font-bold text-sm text-gray-800 dark:text-gray-200">Choose Dark Theme</h3>
+                            <p data-i18n="choose_theme_sub" class="text-[10px] text-gray-400">Select application visual style</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </button>
+
+                <!-- Support Desk -->
+                <button onclick="openSubFullScreen('sub-support-desk-menu', 'Support Desk')" class="w-full p-4 flex justify-between items-center text-left hover:bg-gray-55 dark:hover:bg-gray-800 transition font-medium">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-headset text-red-500 text-lg"></i>
+                        <div>
+                            <h3 data-i18n="support_desk" class="font-bold text-sm text-gray-800 dark:text-gray-200">Support Desk</h3>
+                            <p data-i18n="support_desk_sub" class="text-[10px] text-gray-400">Merchant rules, support & store policies</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </button>
+
+            </div>
+        </div>
+
+        <!-- ================= SUB-SECTIONS (FULL SCREEN WINDOWS) ================= -->
+
+        <!-- A. PROFILE FILL SAVER PAGE -->
+        <div id="sub-saved-addresses" class="tab-content hidden space-y-4">
+            <div class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm text-xs">
+                <h3 data-i18n="profile_fill" class="font-bold text-sm text-blue-600">Profile Fill</h3>
+                <form id="address-profile-form" class="space-y-3" onsubmit="saveNewAddressProfile(event)">
+                    <input type="text" id="prof-title" required placeholder="Profile Title (e.g. Home, Office)" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none font-bold">
+                    <input type="text" id="prof-name" required placeholder="Full Name" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none font-bold">
+                    <input type="tel" id="prof-phone" required placeholder="Phone Number" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none font-bold">
+                    <input type="text" id="prof-pin" required placeholder="Pincode" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none font-bold">
+                    <textarea id="prof-address" required rows="2" placeholder="Full Address Details" class="block w-full border dark:border-gray-800 rounded-lg bg-gray-55 dark:bg-gray-800 p-2.5 text-sm dark:text-white focus:outline-none font-bold"></textarea>
+                    
+                    <button type="submit" data-i18n="save_profile_btn" class="w-full py-2.5 bg-blue-600 text-white rounded font-bold text-xs shadow">
+                        Save Profile
+                    </button>
+                </form>
+            </div>
+
+            <div class="space-y-2">
+                <p data-i18n="saved_profiles_header" class="text-xs font-bold text-gray-400 uppercase tracking-wider">Your Saved Address Profiles</p>
+                <div id="saved-profiles-list" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- B. Coupons Selection -->
+        <div id="sub-checkout-coupons" class="tab-content hidden space-y-4">
+            <p class="text-xs text-gray-400">Select any active discount code to apply to your shopping bag.</p>
+            <div id="checkout-coupons-list" class="space-y-3"></div>
+        </div>
+
+        <!-- C. PRODUCT DETAILS FULL VIEW -->
+        <div id="sub-product-details" class="tab-content hidden space-y-4">
+            <div class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 space-y-4 shadow-sm">
+                
+                <!-- Images Carousel -->
+                <div class="relative w-full h-56 bg-gray-55 dark:bg-gray-800 rounded-xl overflow-hidden">
+                    <div id="det-images-slider" class="w-full h-full flex transition-transform duration-500 ease-in-out"></div>
+                    <div id="det-images-dots" class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1.5 z-10"></div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <span id="det-category" class="text-[10px] font-bold text-blue-500 uppercase">CATEGORY</span>
+                    <h3 id="det-name" class="font-bold text-base leading-snug">Product Title Name</h3>
+                    <div class="flex items-center space-x-2">
+                        <span id="det-price" class="text-lg font-bold text-blue-600 dark:text-blue-400">₹0</span>
+                        <span id="det-mrp" class="text-xs text-gray-400 line-through">MRP ₹0</span>
+                        <span id="det-disc" class="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/20 px-1 py-0.5 rounded">0% Off</span>
+                    </div>
+                </div>
+
+                <!-- Sizes -->
+                <div id="det-sizes-wrapper" class="space-y-1.5">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Choose Size</p>
+                    <div id="det-sizes-container" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <!-- Colors -->
+                <div id="det-colors-wrapper" class="space-y-1.5">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Choose Color (Dynamic Pricing)</p>
+                    <div id="det-colors-container" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="space-y-1">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Description</p>
+                    <p id="det-desc" class="text-gray-500 dark:text-gray-400 leading-relaxed text-xs">Product description...</p>
+                </div>
+
+                <!-- Recommendations slider -->
+                <div class="space-y-2.5 pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <p class="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Other Products You May Like</p>
+                    <div id="det-other-products" class="flex space-x-3 overflow-x-auto no-scrollbar py-1"></div>
+                </div>
+
+                <!-- Actions dynamic controller bar -->
+                <div class="pt-2 border-t dark:border-gray-800 flex justify-between items-center space-x-3">
+                    
+                    <button onclick="addToCart()" id="btn-add-to-cart" class="w-full py-3.5 bg-blue-600 text-white rounded-lg font-bold shadow hover:bg-blue-700 transition">
+                        Add to Bag / Cart
+                    </button>
+
+                    <div id="det-qty-selector-container" class="hidden flex flex-col space-y-2.5 w-full">
+                        <div class="flex items-center space-x-3.5 bg-gray-55 dark:bg-gray-800 p-2 border dark:border-gray-800 rounded-xl justify-between">
+                            <button type="button" onclick="updateDetailsCartQty(-1)" class="font-extrabold text-base px-3 text-gray-500 dark:text-gray-400">-</button>
+                            <span id="det-qty-val" class="font-extrabold text-sm text-blue-600">1</span>
+                            <button type="button" onclick="updateDetailsCartQty(1)" class="font-extrabold text-base px-3 text-gray-500 dark:text-gray-400">+</button>
+                        </div>
+                        <button onclick="openFullScreenTab('tab-cart', 'Shopping Bag', 'nav-cart')" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow flex justify-center items-center gap-1.5 font-medium">
+                            <i class="fas fa-arrow-right-to-bracket"></i> Place Order / Go to Cart
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- J. LANGUAGE SELECTOR WINDOW -->
+        <div id="sub-language-selector" class="tab-content hidden space-y-4 animate-fade-in">
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800 shadow-sm">
+                <button onclick="selectLanguageOption('en')" class="w-full p-5 flex justify-between items-center hover:bg-gray-55 dark:hover:bg-gray-800 transition font-medium">
+                    <span class="text-sm font-bold text-gray-800 dark:text-gray-100">English</span>
+                    <span id="lang-check-en" class="text-blue-600 hidden"><i class="fas fa-circle-check text-lg"></i></span>
+                </button>
+                <button onclick="selectLanguageOption('hi')" class="w-full p-5 flex justify-between items-center hover:bg-gray-55 dark:hover:bg-gray-800 transition font-medium">
+                    <span class="text-sm font-bold text-gray-800 dark:text-gray-100">Hindi (हिन्दी)</span>
+                    <span id="lang-check-hi" class="text-blue-600 hidden"><i class="fas fa-circle-check text-lg"></i></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- K. VISUAL THEME SELECTOR WINDOW -->
+        <div id="sub-theme-selector" class="tab-content hidden space-y-4 animate-fade-in">
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800 shadow-sm">
+                <button onclick="selectThemeOption('light')" class="w-full p-5 flex justify-between items-center hover:bg-gray-55 dark:hover:bg-gray-800 transition font-medium">
+                    <span class="text-sm font-bold text-gray-800 dark:text-gray-100">Light Mode</span>
+                    <span id="theme-check-light" class="text-blue-600 hidden"><i class="fas fa-circle-check text-lg"></i></span>
+                </button>
+                <button onclick="selectThemeOption('dark')" class="w-full p-5 flex justify-between items-center hover:bg-gray-55 dark:hover:bg-gray-800 transition font-medium">
+                    <span class="text-sm font-bold text-gray-800 dark:text-gray-100">Dark Theme</span>
+                    <span id="theme-check-dark" class="text-blue-600 hidden"><i class="fas fa-circle-check text-lg"></i></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- I. SUPPORT DESK MENU -->
+        <div id="sub-support-desk-menu" class="tab-content hidden space-y-4">
+            <div class="px-1">
+                <span class="text-xs uppercase font-extrabold text-gray-400 tracking-wider">Support Desk</span>
+            </div>
+            <div class="space-y-3">
+                <!-- About Us -->
+                <div onclick="openSubFullScreen('sub-rule-about', 'About Us')" class="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition shadow-sm">
+                    <span data-i18n="about_us" class="text-base font-bold text-gray-800 dark:text-gray-100 font-medium">About Us</span>
+                    <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+                </div>
+
+                <!-- Contact Us -->
+                <div onclick="openSubFullScreen('sub-rule-contact', 'Contact Us')" class="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition shadow-sm">
+                    <span data-i18n="contact_us" class="text-base font-bold text-gray-800 dark:text-gray-100 font-medium">Contact Us</span>
+                    <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+                </div>
+
+                <!-- Terms & Conditions -->
+                <div onclick="openSubFullScreen('sub-rule-terms', 'Terms & Conditions')" class="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition shadow-sm">
+                    <span data-i18n="terms_conditions" class="text-base font-bold text-gray-800 dark:text-gray-100 font-medium">Terms & Conditions</span>
+                    <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+                </div>
+
+                <!-- Refund Policy -->
+                <div onclick="openSubFullScreen('sub-rule-refund', 'Refund Policy')" class="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition shadow-sm">
+                    <span data-i18n="refund_policy" class="text-base font-bold text-gray-800 dark:text-gray-100 font-medium">Refund Policy</span>
+                    <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+                </div>
+
+                <!-- Shipping Policy -->
+                <div onclick="openSubFullScreen('sub-rule-shipping', 'Shipping Policy')" class="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200 dark:border-gray-800 flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition shadow-sm">
+                    <span data-i18n="shipping_policy" class="text-base font-bold text-gray-800 dark:text-gray-100 font-medium">Shipping Policy</span>
+                    <i class="fas fa-chevron-right text-gray-400 text-sm"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Rule screens -->
+        <div id="sub-rule-about" class="tab-content hidden space-y-4 bg-white dark:bg-gray-900 p-5 rounded-xl border dark:border-gray-800 text-xs shadow leading-relaxed animate-fade-in">
+            <h3 class="font-bold text-sm text-blue-600 border-b pb-1.5 dark:border-gray-800" data-i18n="about_us">About Us</h3>
+            <p id="dynamic-about-content" class="whitespace-pre-line text-gray-700 dark:text-gray-300">Loading About Us details...</p>
+        </div>
+
+        <div id="sub-rule-contact" class="tab-content hidden space-y-4 bg-white dark:bg-gray-900 p-5 rounded-xl border dark:border-gray-800 text-xs shadow leading-relaxed animate-fade-in">
+            <h3 class="font-bold text-sm text-blue-600 border-b pb-1.5 dark:border-gray-800" data-i18n="contact_us">Contact Us</h3>
+            <p class="text-gray-500 dark:text-gray-400">For any queries or orders support, get in touch with our team:</p>
+            <div class="space-y-2.5 pt-2 border-t dark:border-gray-800 text-gray-700 dark:text-gray-300">
+                <p>👤 <span class="font-bold">Merchant Name:</span> <span id="dynamic-contact-merchant" class="font-bold font-medium">Our Store Manager</span></p>
+                <p>📞 <span class="font-bold">Contact Number:</span> <span id="dynamic-contact-phone">91-XXXXXXXXXX</span></p>
+                <p>✉️ <span class="font-bold">Email Address:</span> <span id="dynamic-contact-email">support@ecart.com</span></p>
+                <p>📍 <span class="font-bold">Office Address:</span> <span id="dynamic-contact-address" class="whitespace-pre-line">Company Address Details</span></p>
+                <p id="dynamic-contact-whatsapp-wrapper" class="hidden pt-1">
+                    <span class="text-green-500"><i class="fab fa-whatsapp text-sm mr-1"></i></span> <span class="font-bold">WhatsApp support:</span> 
+                    <a id="dynamic-contact-whatsapp-link" href="#" target="_blank" class="text-blue-600 dark:text-blue-400 font-bold underline">Chat with us on WhatsApp</a>
+                </p>
+            </div>
+        </div>
+
+        <div id="sub-rule-terms" class="tab-content hidden space-y-4 bg-white dark:bg-gray-900 p-5 rounded-xl border dark:border-gray-800 text-xs shadow leading-relaxed animate-fade-in">
+            <h3 class="font-bold text-sm text-blue-600 border-b pb-1.5 dark:border-gray-800" data-i18n="terms_conditions">Terms & Conditions</h3>
+            <p id="dynamic-terms-content" class="whitespace-pre-line text-gray-700 dark:text-gray-300">Loading terms and conditions...</p>
+        </div>
+
+        <div id="sub-rule-refund" class="tab-content hidden space-y-4 bg-white dark:bg-gray-900 p-5 rounded-xl border dark:border-gray-800 text-xs shadow leading-relaxed animate-fade-in">
+            <h3 class="font-bold text-sm text-blue-600 border-b pb-1.5 dark:border-gray-800" data-i18n="refund_policy">Refund & Cancellation Policy</h3>
+            <p id="dynamic-refund-content" class="whitespace-pre-line text-gray-700 dark:text-gray-300">Loading refund policy...</p>
+        </div>
+
+        <div id="sub-rule-shipping" class="tab-content hidden space-y-4 bg-white dark:bg-gray-900 p-5 rounded-xl border dark:border-gray-800 text-xs shadow leading-relaxed animate-fade-in">
+            <h3 class="font-bold text-sm text-blue-600 border-b pb-1.5 dark:border-gray-800" data-i18n="shipping_policy">Shipping & Delivery Policy</h3>
+            <p id="dynamic-shipping-content" class="whitespace-pre-line text-gray-700 dark:text-gray-300">Loading shipping details...</p>
+        </div>
+
+    </main>
+
+    <!-- ORDER SUCCESS SCREEN OVERLAY -->
+    <div id="order-success-screen" class="fixed inset-0 bg-blue-600 text-white z-50 flex flex-col items-center justify-center p-6 space-y-4 hidden">
+        <i class="fas fa-circle-check text-7xl animate-bounce text-green-300"></i>
+        <h2 class="text-2xl font-black">Order Placed Successfully!</h2>
+        <p class="text-xs text-blue-100 text-center max-w-xs">Aapka order successfully save ho gaya hai. Aap ise History tab me dynamically track kar sakte hain.</p>
+        <button onclick="closeSuccessScreen()" class="px-8 py-3 bg-white text-blue-600 font-bold rounded-xl text-sm shadow focus:outline-none font-medium">
+            Continue Shopping
+        </button>
+    </div>
+
+    <!-- FIXED FOOTER NAVIGATION -->
+    <nav id="bottom-nav-bar" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 shadow-lg flex justify-around py-2 shrink-0 z-40">
+        <button onclick="goToHome()" id="nav-home" class="nav-btn flex flex-col items-center space-y-1 text-blue-600">
+            <i class="fas fa-house text-lg"></i>
+            <span class="text-[10px] font-medium" data-i18n="nav_home">Home</span>
+        </button>
+        <button onclick="openFullScreenTab('tab-cart', 'Shopping Bag', 'nav-cart')" id="nav-cart" class="nav-btn flex flex-col items-center space-y-1 text-gray-400 relative">
+            <span id="cart-badge" class="absolute -top-1.5 right-2 bg-red-500 text-white text-[10px] rounded-full h-5 w-5 items-center justify-center flex font-bold hidden">0</span>
+            <i class="fas fa-shopping-bag text-lg"></i>
+            <span class="text-[10px] font-medium" data-i18n="nav_cart">Cart</span>
+        </button>
+        <button onclick="openFullScreenTab('tab-orders', 'Order History', 'nav-orders')" id="nav-orders" class="nav-btn flex flex-col items-center space-y-1 text-gray-400">
+            <i class="fas fa-clock-rotate-left text-lg"></i>
+            <span class="text-[10px] font-medium" data-i18n="nav_history">History</span>
+        </button>
+        <button onclick="openFullScreenTab('tab-settings', 'Settings Panel', 'nav-settings')" id="nav-settings" class="nav-btn flex flex-col items-center space-y-1 text-gray-400">
+            <i class="fas fa-sliders text-lg"></i>
+            <span class="text-[10px] font-medium" data-i18n="nav_settings">Settings</span>
+        </button>
+    </nav>
+
+    <!-- Firebase SDK Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, set, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Provided Realtime Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6xVnrT2nULPqbk-MFw945czcr5Uj5GDM",
+            authDomain: "e-cart-shopping-be630.firebaseapp.com",
+            projectId: "e-cart-shopping-be630",
+            storageBucket: "e-cart-shopping-be630.firebasestorage.app",
+            messagingSenderId: "976836793739",
+            appId: "1:976836793739:web:8d263d551d0085a06acb8e",
+            measurementId: "G-8QYVS85HM9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Reference points configuration
+        const productsRef = ref(db, 'products');
+        const categoriesRef = ref(db, 'categories');
+        const promosRef = ref(db, 'promocodes');
+        const bannersRef = ref(db, 'settings/banners');
+        const pincodesRef = ref(db, 'settings/pincodes');
+        const ordersRef = ref(db, 'orders');
+        const settingsRef = ref(db, 'settings');
+
+        // States Cache
+        let localProducts = {};
+        let activeBanners = [];
+        let localPromoCodes = {};
+        let localPincodes = {};
+        let allOrders = {};
+        let selectedCategoryFilter = "all";
+
+        // Checkout states
+        let cart = [];
+        let appliedPromo = null;
+        let currentStep = 1;
+
+        // Details selected configs
+        let selectedProduct = null;
+        let selectedSize = null;
+        let selectedColor = null;
+        let selectedPrice = 0;
+
+        // Details slider loops
+        let detailsImgCount = 0;
+        let detailsImgIndex = 0;
+        let detailsImgInterval = null;
+
+        // Prevent redundant trigger calls during setup
+        let hasVerified = false;
+
+        // Multilingual Dictionary Translation Map
+        const i18nDict = {
+            en: {
+                store_title: "E Cart Store",
+                online_status: "Online",
+                category_label: "Category",
+                all_categories: "All Categories",
+                top_catalog: "Top Catalog",
+                loading_catalog: "Loading items catalog...",
+                shopping_bag: "1. Shopping Bag",
+                shipping_info: "2. Shipping Info",
+                payment_promo: "3. Payment & Promo",
+                proceed_shipping: "Proceed to Shipping Details",
+                del_profile_title: "Select Delivery Profile",
+                saved_addr_none: "No saved address profile found.",
+                back_to_bag: "Back to Bag",
+                choose_payments: "Choose Payments",
+                payment_method: "Payment Method",
+                online_pay: "Online Pay",
+                cod_pay: "Cash on Delivery (COD)",
+                total_items_price: "Total Items Price",
+                coupon_discount: "Coupon Discount",
+                delivery_charge: "Delivery charge",
+                free_text: "FREE",
+                grand_total: "Grand Order Total",
+                apply_coupon_label: "Apply Promo Coupon",
+                select_coupon_placeholder: "Select Coupon from List",
+                back_to_address: "Back to Address",
+                confirm_place_order: "Confirm & Place Order",
+                track_orders: "Track Your Orders",
+                search_btn: "Search",
+                settings_panel: "Settings Panel",
+                profile_fill: "Profile Fill",
+                profile_fill_sub: "Save multiple address profiles for checkout",
+                lang_option: "Language Option",
+                lang_option_sub: "Choose application language",
+                choose_theme: "Choose Dark Theme",
+                choose_theme_sub: "Select application visual style",
+                support_desk: "Support Desk",
+                support_desk_sub: "Merchant rules, support & store policies",
+                save_profile_btn: "Save Profile",
+                saved_profiles_header: "Your Saved Address Profiles",
+                about_us: "About Us",
+                contact_us: "Contact Us",
+                terms_conditions: "Terms & Conditions",
+                refund_policy: "Refund Policy",
+                shipping_policy: "Shipping Policy",
+                nav_home: "Home",
+                nav_cart: "Cart",
+                nav_history: "History",
+                nav_settings: "Settings",
+                continue_shopping: "Continue Shopping",
+                empty_bag_text: "Your shopping bag is empty."
+            },
+            hi: {
+                store_title: "ई-कार्ट स्टोर",
+                online_status: "ऑनलाइन",
+                category_label: "श्रेणी",
+                all_categories: "सभी श्रेणियां",
+                top_catalog: "टॉप कैटलॉग",
+                loading_catalog: "आइटम कैटलॉग लोड हो रहा है...",
+                shopping_bag: "1. शॉपिंग बैग",
+                shipping_info: "2. शिपिंग जानकारी",
+                payment_promo: "3. भुगतान और प्रोमो",
+                proceed_shipping: "शिपिंग विवरण पर आगे बढ़ें",
+                del_profile_title: "वितरण प्रोफ़ाइल चुनें",
+                saved_addr_none: "कोई सहेजा गया पता नहीं मिला।",
+                back_to_bag: "बैग पर वापस जाएं",
+                choose_payments: "भुगतान चुनें",
+                payment_method: "भुगतान विधि",
+                online_pay: "ऑनलाइन भुगतान",
+                cod_pay: "कैश ऑन डिलीवरी (COD)",
+                total_items_price: "कुल आइटम मूल्य",
+                coupon_discount: "कूपन छूट",
+                delivery_charge: "डिलीवरी शुल्क",
+                free_text: "मुफ़्त",
+                grand_total: "कुल आर्डर राशि",
+                apply_coupon_label: "प्रोमो कूपन लागू करें",
+                select_coupon_placeholder: "सूची से कूपन चुनें",
+                back_to_address: "पते पर वापस जाएं",
+                confirm_place_order: "ऑर्डर की पुष्टि करें",
+                track_orders: "अपने ऑर्डर ट्रैक करें",
+                search_btn: "खोजें",
+                settings_panel: "सेटिंग्स पैनल",
+                profile_fill: "प्रोफ़ाइल भरें",
+                profile_fill_sub: "चेकआउट के लिए कई पते सहेजें",
+                lang_option: "भाषा विकल्प",
+                lang_option_sub: "एप्लिकेशन भाषा चुनें",
+                choose_theme: "डार्क थीम चुनें",
+                choose_theme_sub: "एप्लिकेशन दृश्य शैली चुनें",
+                support_desk: "सहायता डेस्क",
+                support_desk_sub: "विक्रेता नियम, समर्थन और स्टोर नीतियां",
+                save_profile_btn: "प्रोफ़ाइल सहेजें",
+                saved_profiles_header: "आपके सहेजे गए पते",
+                about_us: "हमारे बारे में",
+                contact_us: "संपर्क करें",
+                terms_conditions: "नियम और शर्तें",
+                refund_policy: "वापसी नीति",
+                shipping_policy: "शिपिंग नीति",
+                nav_home: "होम",
+                nav_cart: "कार्ट",
+                nav_history: "इतिहास",
+                nav_settings: "सेटिंग्स",
+                continue_shopping: "खरीदारी जारी रखें",
+                empty_bag_text: "आपका shopping बैग खाली है।"
+            }
+        };
+
+        window.applyTranslations = () => {
+            const currentLang = localStorage.getItem('store_lang') || 'en';
+            const dict = i18nDict[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) {
+                    el.innerText = dict[key];
+                }
+            });
+
+            // Update Input Placeholders dynamically
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.placeholder = currentLang === 'hi' ? "उत्पाद, आइटम खोजें..." : "Search products, items...";
+            }
+        };
+
+        // Realtime Data Sync Listeners
+        onValue(productsRef, (snap) => {
+            localProducts = snap.val() || {};
+            renderCatalogList();
+            checkDetailsPageCartState(); 
+        });
+
+        onValue(categoriesRef, (snap) => {
+            const data = snap.val() || {};
+            renderCategorySelector(data);
+        });
+
+        onValue(bannersRef, (snap) => {
+            const data = snap.val() || {};
+            activeBanners = Object.values(data).filter(Boolean);
+            renderCarouselBanners();
+        });
+
+        onValue(promosRef, (snap) => {
+            localPromoCodes = snap.val() || {};
+        });
+
+        onValue(pincodesRef, (snap) => {
+            localPincodes = snap.val() || {};
+        });
+
+        onValue(ordersRef, (snap) => {
+            allOrders = snap.val() || {};
+        });
+
+        // Combined Settings and Support configuration load
+        onValue(settingsRef, (snap) => {
+            const settingsData = snap.val() || {};
+            const info = settingsData.personalInfo || {};
+            const supportData = settingsData.support || {};
+            const contactData = supportData.contact || {};
+
+            // Unify Support Desk, Personal Info, and Cashfree configs
+            const resolvedMerchant = contactData.merchant || info.name || 'Our Store Team';
+            const resolvedPhone = contactData.phone || info.phone || '91-XXXXXXXXXX';
+            const resolvedEmail = contactData.email || info.email || 'support@ecart.com';
+            const resolvedAddress = contactData.address || info.address || 'Company Address details';
+
+            // Cache cashfree configs if available
+            window.cfConfig = settingsData.cashfree || null;
+
+            // Trigger safe URL check in case settings loaded after DOMContentLoaded
+            if (typeof window.checkUrlAndVerify === 'function') {
+                window.checkUrlAndVerify();
+            }
+
+            const cMerchant = document.getElementById('dynamic-contact-merchant');
+            const cPhone = document.getElementById('dynamic-contact-phone');
+            const cEmail = document.getElementById('dynamic-contact-email');
+            const cAddress = document.getElementById('dynamic-contact-address');
+            const cWhatsappWrapper = document.getElementById('dynamic-contact-whatsapp-wrapper');
+            const cWhatsappLink = document.getElementById('dynamic-contact-whatsapp-link');
+
+            if (cMerchant) cMerchant.innerText = resolvedMerchant;
+            if (cPhone) cPhone.innerText = resolvedPhone;
+            if (cEmail) cEmail.innerText = resolvedEmail;
+            if (cAddress) cAddress.innerText = resolvedAddress;
+
+            if (contactData.whatsapp && cWhatsappWrapper && cWhatsappLink) {
+                cWhatsappWrapper.classList.remove('hidden');
+                cWhatsappLink.href = contactData.whatsapp;
+            } else if (cWhatsappWrapper) {
+                cWhatsappWrapper.classList.add('hidden');
+            }
+
+            // General fallbacks bindings
+            document.querySelectorAll('.admin-compliance-name').forEach(el => {
+                el.innerText = resolvedMerchant;
+            });
+            document.querySelectorAll('.admin-compliance-email').forEach(el => {
+                el.innerText = resolvedEmail;
+            });
+            document.querySelectorAll('.admin-compliance-phone').forEach(el => {
+                el.innerText = resolvedPhone;
+            });
+
+            // Render descriptive pages
+            const aboutEl = document.getElementById('dynamic-about-content');
+            if (aboutEl) {
+                aboutEl.innerText = supportData.about || "Welcome to E Cart Shopping Store.";
+            }
+
+            const termsEl = document.getElementById('dynamic-terms-content');
+            if (termsEl) {
+                termsEl.innerText = supportData.terms || "Standard merchant terms and conditions apply.";
+            }
+
+            const refundEl = document.getElementById('dynamic-refund-content');
+            if (refundEl) {
+                refundEl.innerText = supportData.refund || "Standard 7-day refund/cancellation policy applies.";
+            }
+
+            const shippingEl = document.getElementById('dynamic-shipping-content');
+            if (shippingEl) {
+                shippingEl.innerText = supportData.shipping || "Dispatch transit takes 5 to 7 days.";
+            }
+        });
+
+        function renderCatalogList() {
+            handleSearchFilter();
+        }
+
+        // Search Filter and Price sorting configuration
+        window.handleSearchFilter = () => {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            selectedCategoryFilter = document.getElementById('filter-category').value;
+            const priceSort = document.getElementById('sort-price').value; 
+
+            const container = document.getElementById('products-grid');
+            container.innerHTML = '';
+            
+            let productsArray = Object.keys(localProducts).map(key => {
+                return { key: key, ...localProducts[key] };
+            });
+
+            if (selectedCategoryFilter !== 'all') {
+                productsArray = productsArray.filter(p => p.category === selectedCategoryFilter);
+            }
+
+            if (query) {
+                productsArray = productsArray.filter(p => {
+                    const nameMatch = (p.name || '').toLowerCase().includes(query);
+                    const catMatch = (p.category || '').toLowerCase().includes(query);
+                    return nameMatch || catMatch;
+                });
+            }
+
+            if (priceSort === 'low') {
+                productsArray.sort((a, b) => a.saleMrp - b.saleMrp);
+            } else if (priceSort === 'high') {
+                productsArray.sort((a, b) => b.saleMrp - a.saleMrp);
+            }
+
+            if (productsArray.length === 0) {
+                container.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400 text-xs font-medium">No products found.</div>`;
+                return;
+            }
+
+            productsArray.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/50 dark:border-gray-800 flex flex-col space-y-2 cursor-pointer shadow-sm relative text-xs";
+                card.onclick = () => showProductDetails(p.key);
+
+                const isOutOfStock = p.inStock === false || p.quantity <= 0;
+                const stockBadge = isOutOfStock 
+                    ? `<span class="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 px-2 py-0.5 rounded text-[9px] font-bold">Out of Stock</span>` 
+                    : `<span class="bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-2 py-0.5 rounded text-[9px] font-bold">In Stock</span>`;
+
+                const discountBadge = (p.discount && p.discount !== '0%') 
+                    ? `<span class="bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">${p.discount} Off</span>` 
+                    : '';
+
+                card.innerHTML = `
+                    <div class="aspect-square w-full rounded-lg overflow-hidden bg-gray-55 dark:bg-gray-800 relative">
+                        <img src="${p.images ? p.images[0] : ''}" class="w-full h-full object-cover ${isOutOfStock ? 'opacity-40' : ''}">
+                        <div class="absolute top-2 right-2">${discountBadge}</div>
+                    </div>
+                    <div class="space-y-1 text-xs">
+                        <p class="font-bold truncate text-gray-900 dark:text-white">${p.name}</p>
+                        <p class="text-[10px] text-gray-400 capitalize">${p.category || 'Wear'}</p>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="font-extrabold text-blue-600 dark:text-blue-400">₹${p.saleMrp}</span>
+                            <span class="text-[10px] text-gray-400 line-through">₹${p.mrp}</span>
+                        </div>
+                        <div class="pt-0.5">${stockBadge}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        };
+
+        function renderCategorySelector(data) {
+            const dropdown = document.getElementById('filter-category');
+            dropdown.innerHTML = `<option value="all">${localStorage.getItem('store_lang') === 'hi' ? 'सभी श्रेणियां' : 'All Categories'}</option>`;
+            Object.keys(data).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = data[key].name;
+                opt.innerText = data[key].name;
+                opt.className = "bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100";
+                dropdown.appendChild(opt);
+            });
+        }
+
+        function renderCarouselBanners() {
+            const container = document.getElementById('carousel-container');
+            const dotsContainer = document.getElementById('carousel-dots');
+            container.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            if (activeBanners.length === 0) {
+                container.innerHTML = `<div class="w-full h-full flex-shrink-0 flex items-center justify-center text-xs text-gray-400">Welcome to E-Cart Store</div>`;
+                return;
+            }
+
+            activeBanners.forEach((base64, idx) => {
+                const slide = document.createElement('div');
+                slide.className = "w-full h-full flex-shrink-0";
+                slide.innerHTML = `<img src="${base64}" class="w-full h-full object-cover">`;
+                container.appendChild(slide);
+
+                const dot = document.createElement('span');
+                dot.className = `h-1.5 w-1.5 rounded-full transition-all ${idx === 0 ? 'bg-blue-600 w-3' : 'bg-gray-300 dark:bg-gray-700'}`;
+                dotsContainer.appendChild(dot);
+            });
+
+            startBannerCycle();
+        }
+
+        let slideInterval = null;
+        function startBannerCycle() {
+            if (slideInterval) clearInterval(slideInterval);
+            let idx = 0;
+            const container = document.getElementById('carousel-container');
+            const dots = document.getElementById('carousel-dots').children;
+
+            slideInterval = setInterval(() => {
+                if (activeBanners.length < 1 || !dots.length) return;
+                idx = (idx + 1) % activeBanners.length;
+                container.style.transform = `translateX(-${idx * 100}%)`;
+
+                Array.from(dots).forEach((dot, i) => {
+                    if (i === idx) {
+                        dot.className = "h-1.5 w-3 bg-blue-600 rounded-full transition-all";
+                    } else {
+                        dot.className = "h-1.5 w-1.5 bg-gray-300 dark:bg-gray-700 rounded-full transition-all";
+                    }
+                });
+            }, 3000);
+        }
+
+        // Show product details and image slider controller
+        window.showProductDetails = (key) => {
+            const p = localProducts[key];
+            selectedProduct = p;
+            selectedProduct.key = key;
+
+            document.getElementById('det-category').innerText = p.category || 'Clothing';
+            document.getElementById('det-name').innerText = p.name;
+            document.getElementById('det-desc').innerText = p.description || 'No description provided.';
+
+            selectedPrice = p.saleMrp;
+            document.getElementById('det-price').innerText = `₹${p.saleMrp}`;
+            document.getElementById('det-mrp').innerText = `MRP ₹${p.mrp}`;
+            document.getElementById('det-disc').innerText = p.discount || '0% Off';
+
+            const slider = document.getElementById('det-images-slider');
+            const dotsContainer = document.getElementById('det-images-dots');
+            slider.innerHTML = '';
+            dotsContainer.innerHTML = '';
+
+            const images = p.images || [];
+            detailsImgCount = images.length;
+            detailsImgIndex = 0;
+
+            if (images.length > 0) {
+                images.forEach((img, idx) => {
+                    const slide = document.createElement('div');
+                    slide.className = "w-full h-full flex-shrink-0";
+                    slide.innerHTML = `<img src="${img}" class="w-full h-full object-cover animate-fade-in">`;
+                    slider.appendChild(slide);
+
+                    const dot = document.createElement('button');
+                    dot.type = "button";
+                    dot.className = `h-2 w-2 rounded-full transition-all duration-300 ${idx === 0 ? 'bg-blue-600 w-4' : 'bg-gray-300 dark:bg-gray-700'}`;
+                    dot.onclick = () => selectDetailsImageSlide(idx);
+                    dotsContainer.appendChild(dot);
+                });
+            } else {
+                slider.innerHTML = `<div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">No image available</div>`;
+            }
+
+            startDetailsSliderCycle();
+
+            // Sizes Config
+            const sizeWrap = document.getElementById('det-sizes-wrapper');
+            const sizeCont = document.getElementById('det-sizes-container');
+            sizeCont.innerHTML = '';
+            if (p.sizes && p.sizes.length > 0) {
+                sizeWrap.classList.remove('hidden');
+                p.sizes.forEach((sz, i) => {
+                    const pill = document.createElement('button');
+                    pill.type = "button";
+                    pill.className = "size-pill px-3 py-1.5 rounded-lg border text-xs font-semibold focus:outline-none dark:border-gray-800 dark:text-gray-200";
+                    pill.onclick = () => selectSizePill(sz, pill);
+                    pill.innerText = sz;
+                    sizeCont.appendChild(pill);
+                    if (i === 0) selectSizePill(sz, pill);
+                });
+            } else {
+                sizeWrap.classList.add('hidden');
+                selectedSize = null;
+            }
+
+            // Colors Config
+            const colorWrap = document.getElementById('det-colors-wrapper');
+            const colorCont = document.getElementById('det-colors-container');
+            colorCont.innerHTML = '';
+            if (p.colors && p.colors.length > 0) {
+                colorWrap.classList.remove('hidden');
+                p.colors.forEach((item, i) => {
+                    const pill = document.createElement('button');
+                    pill.type = "button";
+                    pill.className = "color-pill px-3 py-1.5 rounded-lg border text-xs font-semibold focus:outline-none dark:border-gray-800 dark:text-gray-200";
+                    pill.onclick = () => selectColorPill(item, pill);
+                    pill.innerText = `${item.color} (₹${item.saleMrp})`;
+                    colorCont.appendChild(pill);
+                    if (i === 0) selectColorPill(item, pill);
+                });
+            } else {
+                colorWrap.classList.add('hidden');
+                selectedColor = null;
+            }
+
+            renderOtherProductsRecommendations(key);
+            checkDetailsPageCartState();
+
+            openFullScreenPage('sub-product-details', 'Product Details');
+        };
+
+        window.selectDetailsImageSlide = (idx) => {
+            detailsImgIndex = idx;
+            const slider = document.getElementById('det-images-slider');
+            slider.style.transform = `translateX(-${idx * 100}%)`;
+            
+            const dots = document.getElementById('det-images-dots').children;
+            Array.from(dots).forEach((dot, i) => {
+                if (i === idx) {
+                    dot.className = "h-2 w-4 bg-blue-600 rounded-full transition-all duration-300";
+                } else {
+                    dot.className = "h-2 w-2 bg-gray-300 dark:bg-gray-700 rounded-full transition-all duration-300";
+                }
+            });
+            startDetailsSliderCycle();
+        };
+
+        function startDetailsSliderCycle() {
+            if (detailsImgInterval) clearInterval(detailsImgInterval);
+            if (detailsImgCount < 1) return;
+
+            detailsImgInterval = setInterval(() => {
+                detailsImgIndex = (detailsImgIndex + 1) % detailsImgCount;
+                const slider = document.getElementById('det-images-slider');
+                if (slider) slider.style.transform = `translateX(-${detailsImgIndex * 100}%)`;
+
+                const dots = document.getElementById('det-images-dots') ? document.getElementById('det-images-dots').children : [];
+                if (dots && dots.length > 0) {
+                    Array.from(dots).forEach((dot, i) => {
+                        if (i === detailsImgIndex) {
+                            dot.className = "h-2 w-4 bg-blue-600 rounded-full transition-all duration-300";
+                        } else {
+                            dot.className = "h-2 w-2 bg-gray-300 dark:bg-gray-700 rounded-full transition-all duration-300";
+                        }
+                    });
+                }
+            }, 3000);
+        }
+
+        function selectSizePill(size, el) {
+            selectedSize = size;
+            document.querySelectorAll('.size-pill').forEach(pill => {
+                pill.className = "size-pill px-3 py-1.5 rounded-lg border text-xs font-semibold dark:border-gray-800 dark:text-gray-200";
+            });
+            el.className = "size-pill px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold focus:outline-none";
+            checkDetailsPageCartState(); 
+        }
+
+        function selectColorPill(item, el) {
+            selectedColor = item.color;
+            selectedPrice = item.saleMrp;
+            document.getElementById('det-price').innerText = `₹${selectedPrice}`;
+
+            document.querySelectorAll('.color-pill').forEach(pill => {
+                pill.className = "color-pill px-3 py-1.5 rounded-lg border text-xs font-semibold dark:border-gray-800 dark:text-gray-200";
+            });
+            el.className = "color-pill px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold focus:outline-none";
+            checkDetailsPageCartState(); 
+        }
+
+        function renderOtherProductsRecommendations(currentKey) {
+            const container = document.getElementById('det-other-products');
+            container.innerHTML = '';
+            const keys = Object.keys(localProducts).filter(k => k !== currentKey);
+
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-[10px] text-gray-400 py-2">No other products.</p>`;
+                return;
+            }
+
+            keys.forEach(k => {
+                const p = localProducts[k];
+                const card = document.createElement('div');
+                card.className = "w-24 shrink-0 space-y-1 cursor-pointer";
+                card.onclick = () => showProductDetails(k);
+                card.innerHTML = `
+                    <div class="h-20 w-24 rounded-lg overflow-hidden bg-gray-55 dark:bg-gray-800">
+                        <img src="${p.images ? p.images[0] : ''}" class="w-full h-full object-cover">
+                    </div>
+                    <p class="text-[10px] font-bold truncate text-gray-800 dark:text-gray-200">${p.name}</p>
+                    <p class="text-[10px] font-extrabold text-blue-600 dark:text-blue-400">₹${p.saleMrp}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.checkDetailsPageCartState = () => {
+            if (!selectedProduct) return;
+
+            const addBtn = document.getElementById('btn-add-to-cart');
+            const qtySelector = document.getElementById('det-qty-selector-container');
+            const qtyVal = document.getElementById('det-qty-val');
+
+            const isOutOfStock = selectedProduct.inStock === false || selectedProduct.quantity <= 0;
+            if (isOutOfStock) {
+                addBtn.classList.remove('hidden');
+                qtySelector.classList.add('hidden');
+                addBtn.disabled = true;
+                addBtn.innerText = "OUT OF STOCK";
+                addBtn.className = "w-full py-3.5 bg-gray-300 dark:bg-gray-800 text-gray-500 rounded-lg font-bold cursor-not-allowed";
+                return;
+            }
+
+            const sizeKey = selectedSize || 'Free Size';
+            const colorKey = selectedColor || 'Standard';
+            const matchItem = cart.find(item => item.id === selectedProduct.key && item.size === sizeKey && item.color === colorKey);
+
+            if (matchItem) {
+                addBtn.classList.add('hidden');
+                qtySelector.classList.remove('hidden');
+                qtyVal.innerText = matchItem.qty;
+            } else {
+                addBtn.classList.remove('hidden');
+                qtySelector.classList.add('hidden');
+                addBtn.disabled = false;
+                addBtn.innerText = "Add to Bag / Cart";
+                addBtn.className = "w-full py-3.5 bg-blue-600 text-white rounded-lg font-bold shadow-md hover:bg-blue-700 transition";
+            }
+        }
+
+        window.addToCart = () => {
+            const cartItem = {
+                id: selectedProduct.key,
+                name: selectedProduct.name,
+                image: selectedProduct.images ? selectedProduct.images[0] : '',
+                size: selectedSize || 'Free Size',
+                color: selectedColor || 'Standard',
+                price: selectedPrice,
+                qty: 1
+            };
+
+            cart.push(cartItem);
+            updateCartBadge();
+            checkDetailsPageCartState(); 
+            renderCartList();
+        };
+
+        window.updateDetailsCartQty = (amount) => {
+            const sizeKey = selectedSize || 'Free Size';
+            const colorKey = selectedColor || 'Standard';
+            const idx = cart.findIndex(item => item.id === selectedProduct.key && item.size === sizeKey && item.color === colorKey);
+
+            if (idx > -1) {
+                cart[idx].qty += amount;
+                if (cart[idx].qty <= 0) {
+                    cart.splice(idx, 1);
+                }
+                updateCartBadge();
+                checkDetailsPageCartState(); 
+                renderCartList();
+            }
+        };
+
+        function updateCartBadge() {
+            const badge = document.getElementById('cart-badge');
+            if (cart.length > 0) {
+                badge.classList.remove('hidden');
+                badge.innerText = cart.length;
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function renderCartList() {
+            const container = document.getElementById('cart-items-list');
+            const step1Action = document.getElementById('step-1-action');
+            container.innerHTML = '';
+
+            if (cart.length === 0) {
+                currentStep = 1;
+                document.querySelectorAll('[id^="step-indicator-"]').forEach(ind => {
+                    ind.className = "text-gray-400 flex-1";
+                });
+                const step1Ind = document.getElementById('step-indicator-1');
+                if (step1Ind) step1Ind.className = "text-blue-600 flex-1 font-extrabold";
+
+                const step1 = document.getElementById('checkout-step-1');
+                const step2 = document.getElementById('checkout-step-2');
+                const step3 = document.getElementById('checkout-step-3');
+                if (step1) step1.classList.remove('hidden');
+                if (step2) step2.classList.add('hidden');
+                if (step3) step3.classList.add('hidden');
+
+                container.innerHTML = `
+                    <div id="empty-cart-state" class="text-center py-12 text-gray-400 text-xs space-y-4">
+                        <p class="font-bold" data-i18n="empty_bag_text">Your shopping bag is empty.</p>
+                        <button onclick="goToHome()" data-i18n="continue_shopping" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs inline-block shadow">
+                            Continue Shopping
+                        </button>
+                    </div>`;
+                window.applyTranslations();
+                step1Action.classList.add('hidden');
+                return;
+            }
+
+            step1Action.classList.remove('hidden');
+
+            cart.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200 dark:border-gray-800 flex items-center space-x-3 text-xs shadow-sm animate-fade-in";
+                card.innerHTML = `
+                    <img src="${item.image}" class="w-14 h-14 object-cover rounded-lg bg-gray-55 dark:bg-gray-800 shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-bold truncate text-gray-900 dark:text-white">${item.name}</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Size: ${item.size} | Color: ${item.color}</p>
+                        <p class="font-bold text-blue-600 mt-1">₹${item.price}</p>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0 bg-gray-55 dark:bg-gray-800 p-1.5 rounded-lg border dark:border-gray-800">
+                        <button type="button" onclick="updateQty(${idx}, -1)" class="font-extrabold text-xs px-1.5 focus:outline-none dark:text-white">-</button>
+                        <span class="font-bold text-xs dark:text-white">${item.qty}</span>
+                        <button type="button" onclick="updateQty(${idx}, 1)" class="font-extrabold text-xs px-1.5 focus:outline-none dark:text-white">+</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            recalculateCartBill();
+        }
+
+        window.updateQty = (idx, amount) => {
+            cart[idx].qty += amount;
+            if (cart[idx].qty <= 0) cart.splice(idx, 1);
+            updateCartBadge();
+            renderCartList();
+            checkDetailsPageCartState(); 
+        };
+
+        window.goToStep = (step) => {
+            currentStep = step;
+            
+            document.querySelectorAll('[id^="step-indicator-"]').forEach(ind => {
+                ind.className = "text-gray-400 flex-1";
+            });
+            document.getElementById(`step-indicator-${step}`).className = "text-blue-600 flex-1 font-extrabold";
+
+            document.getElementById('checkout-step-1').classList.add('hidden');
+            document.getElementById('checkout-step-2').classList.add('hidden');
+            document.getElementById('checkout-step-3').classList.add('hidden');
+
+            document.getElementById(`checkout-step-${step}`).classList.remove('hidden');
+
+            if (step === 2) {
+                renderCheckoutSavedProfiles(); 
+            } else if (step === 3) {
+                renderPromoCodesOptionsInCheckout(); 
+            }
+        };
+
+        window.verifyPincodeAndFetchDetails = (pinValue) => {
+            verifyPincodeCod(pinValue);
+
+            const feedback = document.getElementById('pincode-feedback');
+            const cityInput = document.getElementById('cust-city');
+            const distInput = document.getElementById('cust-district');
+            const stateInput = document.getElementById('cust-state');
+
+            if (pinValue.length === 6 && /^\d+$/.test(pinValue)) {
+                feedback.className = "text-[10px] font-bold mt-1 block text-blue-500 animate-pulse";
+                feedback.innerText = "Loading Pincode area details...";
+
+                fetch(`https://api.postalpincode.in/pincode/${pinValue}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data[0] && data[0].Status === "Success") {
+                            const postOffice = data[0].PostOffice[0];
+                            cityInput.value = postOffice.Block || postOffice.Name;
+                            distInput.value = postOffice.District;
+                            stateInput.value = postOffice.State;
+                            verifyPincodeCod(pinValue);
+                        } else {
+                            feedback.className = "text-[10px] font-bold mt-1 block text-red-500";
+                            feedback.innerText = "Invalid Pincode entered!";
+                            cityInput.value = "";
+                            distInput.value = "";
+                            stateInput.value = "";
+                        }
+                    })
+                    .catch(() => {
+                        feedback.innerText = "Connection Error! Manual fill allowed.";
+                    });
+            } else {
+                cityInput.value = "";
+                distInput.value = "";
+                stateInput.value = "";
+            }
+        };
+
+        window.validateStep2AndProceed = () => {
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const building = document.getElementById('cust-building').value.trim();
+            const pincode = document.getElementById('cust-pin').value.trim();
+            const address = document.getElementById('cust-address').value.trim();
+
+            if (name && phone && building && pincode.length === 6 && address) {
+                goToStep(3);
+            } else {
+                alert("Please fill all mandatory fields (Name, Mobile, Building, Pincode & Address).");
+            }
+        };
+
+        function renderCheckoutSavedProfiles() {
+            const container = document.getElementById('checkout-address-profiles');
+            container.innerHTML = '';
+            
+            const saved = JSON.parse(localStorage.getItem('saved_customer_profiles')) || [];
+            const autoSaved = JSON.parse(localStorage.getItem('auto_saved_checkout_addresses')) || [];
+
+            if (saved.length === 0 && autoSaved.length === 0) {
+                container.innerHTML = `<span class="text-gray-400 text-[10px]">No saved profiles.</span>`;
+                return;
+            }
+
+            saved.forEach((profile) => {
+                const badge = document.createElement('button');
+                badge.type = "button";
+                badge.className = "bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-850 px-3 py-1.5 rounded-full text-[10px] font-bold shrink-0 text-blue-700 dark:text-blue-300";
+                badge.onclick = () => loadAddressIntoCheckout(profile, profile.title);
+                badge.innerText = `👤 ${profile.title}`;
+                container.appendChild(badge);
+            });
+
+            autoSaved.forEach((profile, idx) => {
+                const badge = document.createElement('button');
+                badge.type = "button";
+                badge.className = "bg-purple-50 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-850 px-3 py-1.5 rounded-full text-[10px] font-bold shrink-0 text-purple-700 dark:text-purple-300";
+                badge.onclick = () => loadAddressIntoCheckout(profile, `Previous Address #${idx + 1}`);
+                badge.innerText = `🕒 Prev Address #${idx + 1}`;
+                container.appendChild(badge);
+            });
+        }
+
+        function loadAddressIntoCheckout(profile, label) {
+            document.getElementById('cust-name').value = profile.name || '';
+            document.getElementById('cust-phone').value = profile.phone || '';
+            document.getElementById('cust-building').value = profile.building || '';
+            document.getElementById('cust-landmark').value = profile.landmark || '';
+            document.getElementById('cust-pin').value = profile.pincode || '';
+            document.getElementById('cust-address').value = profile.address || '';
+            verifyPincodeAndFetchDetails(profile.pincode);
+        }
+
+        function renderPromoCodesOptionsInCheckout() {
+            const container = document.getElementById('checkout-coupons-list');
+            container.innerHTML = '';
+
+            const keys = Object.keys(localPromoCodes);
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 py-12 text-xs">No active coupons available.</p>`;
+                return;
+            }
+
+            keys.forEach(key => {
+                const item = localPromoCodes[key];
+                const card = document.createElement('button');
+                card.type = "button";
+                
+                const isApplied = appliedPromo && appliedPromo.code === item.code;
+                card.className = `w-full p-4 rounded-xl border text-left transition shrink-0 ${isApplied ? 'bg-purple-100 dark:bg-purple-900/40 border-purple-500 text-purple-700 dark:text-purple-300 font-bold' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800'}`;
+                card.onclick = () => selectCheckoutCoupon(item);
+                
+                const unit = item.discountType === 'percentage' ? '%' : '₹';
+                card.innerHTML = `
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-mono font-bold text-sm bg-purple-50 dark:bg-purple-900/35 px-2 py-0.5 rounded border border-purple-200 dark:border-purple-800">${item.code}</span>
+                        <span class="font-extrabold text-gray-700 dark:text-gray-300">${item.discountValue}${unit} OFF</span>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-2">Minimum Purchase: ₹${item.minPurchase} | ${item.newUserOnly ? 'New User' : 'All Users'}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function selectCheckoutCoupon(item) {
+            let subtotal = 0;
+            cart.forEach(el => subtotal += (el.price * el.qty));
+
+            const feedback = document.getElementById('promo-feedback');
+            const statusText = document.getElementById('checkout-coupon-status-text');
+
+            if (subtotal < item.minPurchase) {
+                alert(`Coupon cannot be applied. Minimum purchase of ₹${item.minPurchase} required.`);
+            } else {
+                appliedPromo = item;
+                feedback.className = "text-[10px] font-bold mt-1 block text-green-500";
+                feedback.innerText = `Coupon '${item.code}' Applied!`;
+                statusText.innerText = `Coupon '${item.code}' Applied!`;
+                handleBackNavigation();
+            }
+            recalculateCartBill();
+        }
+
+        function recalculateCartBill() {
+            let subtotal = 0;
+            cart.forEach(item => subtotal += (item.price * item.qty));
+
+            let discount = 0;
+            if (appliedPromo) {
+                if (subtotal >= appliedPromo.minPurchase) {
+                    if (appliedPromo.discountType === 'percentage') {
+                        discount = Math.round((subtotal * appliedPromo.discountValue) / 100);
+                    } else {
+                        discount = appliedPromo.discountValue;
+                    }
+                } else {
+                    appliedPromo = null;
+                    document.getElementById('promo-feedback').innerText = '';
+                    document.getElementById('checkout-coupon-status-text').innerText = "Select Coupon from List";
+                }
+            }
+
+            const finalBill = subtotal - discount;
+            document.getElementById('bill-subtotal').innerText = `₹${subtotal}`;
+            document.getElementById('bill-discount').innerText = `-₹${discount}`;
+            document.getElementById('bill-final').innerText = `₹${finalBill}`;
+        }
+
+        window.verifyPincodeCod = (pinValue) => {
+            const feedback = document.getElementById('pincode-feedback');
+            const codRadioInput = document.getElementById('cod-radio-input');
+            const codLabelText = document.getElementById('cod-label-text');
+
+            if (pinValue.length === 6) {
+                let foundPinRule = localPincodes[pinValue];
+                if (foundPinRule) {
+                    if (foundPinRule.cod === 'enabled') {
+                        feedback.className = "text-[10px] font-bold mt-1 block text-green-500";
+                        feedback.innerText = "COD available!";
+                        codRadioInput.disabled = false;
+                        codLabelText.innerText = "Cash on Delivery (COD)";
+                    } else {
+                        feedback.className = "text-[10px] font-bold mt-1 block text-red-500";
+                        feedback.innerText = "COD not available for this pincode.";
+                        codRadioInput.disabled = true;
+                        codRadioInput.checked = false;
+                        document.querySelector('input[name="pay-mode"][value="online"]').checked = true;
+                        codLabelText.innerText = "COD Not Serviceable";
+                    }
+                } else {
+                    feedback.className = "text-[10px] font-bold mt-1 block text-green-500";
+                    feedback.innerText = "COD & Online payments both active.";
+                    codRadioInput.disabled = false;
+                    codLabelText.innerText = "Cash on Delivery (COD)";
+                }
+            } else {
+                feedback.innerText = '';
+                codRadioInput.disabled = false;
+                codLabelText.innerText = "Cash on Delivery (COD)";
+            }
+        };
+
+        window.submitFinalOrder = () => {
+            let subtotal = 0;
+            cart.forEach(item => subtotal += (item.price * item.qty));
+
+            const discount = appliedPromo ? (appliedPromo.discountType === 'percentage' ? Math.round((subtotal * appliedPromo.discountValue) / 100) : appliedPromo.discountValue) : 0;
+            const finalBill = subtotal - discount;
+            const phone = document.getElementById('cust-phone').value.trim();
+            const payMode = document.querySelector('input[name="pay-mode"]:checked').value;
+
+            const newOrder = {
+                customerName: document.getElementById('cust-name').value,
+                customerPhone: phone,
+                customerPincode: document.getElementById('cust-pin').value,
+                customerAddress: `Building: ${document.getElementById('cust-building').value}, Landmark: ${document.getElementById('cust-landmark').value || 'N/A'}, City: ${document.getElementById('cust-city').value}, District: ${document.getElementById('cust-district').value}, State: ${document.getElementById('cust-state').value}, Details: ${document.getElementById('cust-address').value}`,
+                paymentMode: payMode,
+                cartItems: cart,
+                totalPrice: finalBill,
+                discountApplied: discount,
+                codEnabled: payMode === 'COD',
+                status: payMode === 'online' ? 'Pending Payment' : 'Pending',
+                createdAt: new Date().toISOString()
+            };
+
+            localStorage.setItem('cust-saved-phone', phone);
+
+            // Auto-save checkout history
+            const addressObj = {
+                name: document.getElementById('cust-name').value,
+                phone: phone,
+                building: document.getElementById('cust-building').value,
+                landmark: document.getElementById('cust-landmark').value || '',
+                pincode: document.getElementById('cust-pin').value,
+                city: document.getElementById('cust-city').value,
+                district: document.getElementById('cust-district').value,
+                state: document.getElementById('cust-state').value,
+                address: document.getElementById('cust-address').value
+            };
+
+            let autoSaved = JSON.parse(localStorage.getItem('auto_saved_checkout_addresses')) || [];
+            const isDuplicate = autoSaved.some(a => a.building === addressObj.building && a.pincode === addressObj.pincode && a.name === addressObj.name);
+            if (!isDuplicate) {
+                autoSaved.unshift(addressObj);
+                if (autoSaved.length > 5) autoSaved.pop();
+                localStorage.setItem('auto_saved_checkout_addresses', JSON.stringify(autoSaved));
+            }
+
+            // Write order first to Firebase
+            const newOrderRef = push(ordersRef);
+            const orderKey = newOrderRef.key;
+
+            set(newOrderRef, newOrder)
+                .then(() => {
+                    if (payMode === 'online') {
+                        // Trigger Cashfree SDK payment gateway flow
+                        initiateCashfreePayment(orderKey, finalBill, phone, document.getElementById('cust-name').value);
+                    } else {
+                        completeOrderCheckoutFlow();
+                    }
+                }).catch(err => alert("Error saving order: " + err.message));
+        };
+
+        function completeOrderCheckoutFlow() {
+            cart = [];
+            appliedPromo = null;
+            document.getElementById('pincode-feedback').innerText = '';
+            document.getElementById('promo-feedback').innerText = '';
+            updateCartBadge();
+            goToStep(1); 
+
+            try {
+                const successSound = new Audio('https://assets.mixkit.co/active_storage/sfx/911/911-84.wav');
+                successSound.play();
+            } catch(audioErr) {
+                console.log("Audio play postponed:", audioErr);
+            }
+            
+            document.getElementById('order-success-screen').classList.remove('hidden');
+        }
+
+        // Direct Client-Side Cashfree integration via corsproxy.io (Serverless setup)
+        window.initiateCashfreePayment = async (orderId, amount, phone, name) => {
+            if (!window.cfConfig || !window.cfConfig.clientId || !window.cfConfig.clientSecret) {
+                alert("Cashfree configuration settings missing in Admin Panel! Cannot initiate online payment.");
+                // Update order to Payment Failed in Firebase
+                update(ref(db, `orders/${orderId}`), { 
+                    status: 'Payment Failed',
+                    paymentStatus: 'FAILED'
+                });
+                return;
+            }
+
+            const cfEnv = window.cfConfig.environment || 'test';
+            const host = cfEnv === 'production' ? 'https://api.cashfree.com/pg' : 'https://sandbox.cashfree.com/pg';
+            
+            // Generate request URL
+            const targetUrl = `${host}/orders`;
+            const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+            const returnUrl = window.location.origin + window.location.pathname + `?order_id=${orderId}`;
+
+            // Clean & format customer mobile
+            let cleanPhone = phone.replace(/\D/g, '');
+            if(cleanPhone.length < 10) cleanPhone = "9999999999";
+            if(cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
+
+            const payload = {
+                order_id: orderId,
+                order_amount: parseFloat(amount),
+                order_currency: "INR",
+                customer_details: {
+                    customer_id: "C_ID_" + cleanPhone,
+                    customer_name: name || "Customer Name",
+                    customer_email: (name ? name.toLowerCase().replace(/\s+/g, '') : "customer") + "@gmail.com",
+                    customer_phone: cleanPhone
+                },
+                order_meta: {
+                    return_url: returnUrl
+                }
+            };
+
+            try {
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'x-client-id': window.cfConfig.clientId,
+                        'x-client-secret': window.cfConfig.clientSecret,
+                        'x-api-version': '2023-08-01',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if(!response.ok) {
+                    const errTxt = await response.text();
+                    throw new Error(`Cashfree Error: ${errTxt}`);
+                }
+
+                const resData = await response.json();
+                
+                if (resData && resData.payment_session_id) {
+                    // Safe access to global Cashfree SDK instance in module scope
+                    const cashfree = window.Cashfree({ mode: cfEnv === 'production' ? "production" : "sandbox" });
+                    cashfree.checkout({
+                        paymentSessionId: resData.payment_session_id,
+                        redirectTarget: "_self"
+                    });
+                } else {
+                    alert("Order Session creation response failed!");
+                    update(ref(db, `orders/${orderId}`), { 
+                        status: 'Payment Failed',
+                        paymentStatus: 'FAILED'
+                    });
+                }
+            } catch(err) {
+                console.error("Cashfree Checkout Init Failed: ", err);
+                alert("Payment Gateway could not be initialized. Please try again or choose Cash on Delivery.");
+                update(ref(db, `orders/${orderId}`), { 
+                    status: 'Payment Failed',
+                    paymentStatus: 'FAILED'
+                });
+            }
+        };
+
+        // Redirection verification handler
+        window.verifyAndCompleteOnlinePayment = async (orderId) => {
+            if (!window.cfConfig || !window.cfConfig.clientId || !window.cfConfig.clientSecret) {
+                alert("Verification Error: Gateway settings not ready.");
+                return;
+            }
+
+            const cfEnv = window.cfConfig.environment || 'test';
+            const host = cfEnv === 'production' ? 'https://api.cashfree.com/pg' : 'https://sandbox.cashfree.com/pg';
+            const targetUrl = `${host}/orders/${orderId}`;
+            const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'x-client-id': window.cfConfig.clientId,
+                        'x-client-secret': window.cfConfig.clientSecret,
+                        'x-api-version': '2023-08-01',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Unable to check status from gateway server.");
+                }
+
+                const orderData = await response.json();
+
+                if (orderData && orderData.order_status === "PAID") {
+                    await update(ref(db, `orders/${orderId}`), { 
+                        status: 'Paid',
+                        paymentStatus: 'PAID'
+                    });
+                    
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    cart = [];
+                    updateCartBadge();
+                    document.getElementById('order-success-screen').classList.remove('hidden');
+                } else {
+                    alert(`Payment was not successful. Status: ${orderData.order_status || 'UNKNOWN'}`);
+                    await update(ref(db, `orders/${orderId}`), { 
+                        status: 'Payment Failed',
+                        paymentStatus: 'FAILED'
+                    });
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } catch (err) {
+                console.error("Order payment status validation failed:", err);
+                alert("Payment verification error! Please check your order history.");
+            }
+        };
+
+        // Single Entrypoint verification to avoid race conditions
+        window.checkUrlAndVerify = async () => {
+            if (hasVerified) return;
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderIdFromUrl = urlParams.get('order_id');
+            if (orderIdFromUrl && window.cfConfig) {
+                hasVerified = true;
+                await window.verifyAndCompleteOnlinePayment(orderIdFromUrl);
+            }
+        };
+
+        window.closeSuccessScreen = () => {
+            document.getElementById('order-success-screen').classList.add('hidden');
+            renderCartList();
+            
+            const phone = localStorage.getItem('cust-saved-phone');
+            if (phone) {
+                document.getElementById('track-phone-input').value = phone;
+                loadOrderHistory();
+            }
+
+            openFullScreenTab('tab-orders', 'Order History', 'nav-orders');
+        };
+
+        window.loadOrderHistory = () => {
+            const phoneVal = document.getElementById('track-phone-input').value.trim();
+            const list = document.getElementById('order-history-list');
+            list.innerHTML = '';
+
+            if (!phoneVal) {
+                list.innerHTML = `<p class="text-center text-xs text-red-500 py-8">Please enter a valid Phone Number.</p>`;
+                return;
+            }
+
+            const keys = Object.keys(allOrders);
+            const customerOrders = keys.filter(k => allOrders[k].customerPhone === phoneVal);
+
+            if (customerOrders.length === 0) {
+                list.innerHTML = `<p class="text-center text-xs text-gray-400 py-8">No order record found for this number.</p>`;
+                return;
+            }
+
+            customerOrders.sort((a, b) => {
+                const dateA = new Date(allOrders[a].createdAt || 0);
+                const dateB = new Date(allOrders[b].createdAt || 0);
+                return dateB - dateA;
+            });
+
+            customerOrders.forEach(key => {
+                const o = allOrders[key];
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 space-y-3.5 text-xs shadow-sm relative animate-fade-in";
+                
+                let timelineHTML = '';
+                if(o.dispatchDate) timelineHTML += `<div class="flex justify-between text-[10px] text-gray-500"><span>• DISPATCHED:</span> <span>${o.dispatchDate}</span></div>`;
+                if(o.shippingDate) timelineHTML += `<div class="flex justify-between text-[10px] text-gray-500"><span>• SHIPPED:</span> <span>${o.shippingDate}</span></div>`;
+                if(o.outOfDeliveryDate) timelineHTML += `<div class="flex justify-between text-[10px] text-gray-500"><span>• OUT FOR DELIVERY:</span> <span>${o.outOfDeliveryDate}</span></div>`;
+                if(o.deliveredDate) timelineHTML += `<div class="flex justify-between text-[10px] text-green-600 font-bold"><span>✓ DELIVERED:</span> <span>${o.deliveredDate}</span></div>`;
+                if(o.returnedDate) timelineHTML += `<div class="flex justify-between text-[10px] text-red-500 font-bold"><span>↺ RETURNED:</span> <span>${o.returnedDate}</span></div>`;
+                if(o.exchangedDate) timelineHTML += `<div class="flex justify-between text-[10px] text-orange-500 font-bold"><span>⇄ EXCHANGED:</span> <span>${o.exchangedDate}</span></div>`;
+
+                let actionButtonsHTML = '';
+                const orderStatusClean = (o.status || 'Pending').trim().toLowerCase();
+
+                if (orderStatusClean === 'pending' || orderStatusClean === 'pending payment' || orderStatusClean === 'paid') {
+                    actionButtonsHTML += `
+                        <button onclick="cancelUserOrder('${key}')" class="px-3.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-900 rounded-lg font-bold text-[10px] transition font-medium">
+                            Cancel Order
+                        </button>
+                    `;
+                }
+
+                if (orderStatusClean === 'delivered' && o.deliveredDate) {
+                    const deliveredTime = new Date(o.deliveredDate).getTime();
+                    const currentTime = new Date().getTime();
+                    const diffDays = (currentTime - deliveredTime) / (1000 * 60 * 60 * 24);
+
+                    if (diffDays >= 0 && diffDays <= 7) {
+                        actionButtonsHTML += `
+                            <div class="flex space-x-2 pt-1">
+                                <button onclick="requestOrderReturn('${key}')" class="flex-1 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-900 rounded-lg font-bold text-[10px] text-center transition font-medium">
+                                    Return Product
+                                </button>
+                                <button onclick="requestOrderExchange('${key}')" class="flex-1 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400 border border-orange-200 dark:border-orange-900 rounded-lg font-bold text-[10px] text-center transition font-medium">
+                                    Exchange Product
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Custom colorful badge logic based on status
+                let displayStatus = o.status || 'Pending';
+                let badgeColorClass = "text-blue-600 bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800";
+
+                // Translate 'Paid' to 'Pending' in UI & style as Emerald Green as requested: "paid hatao pending dikhe"
+                if (displayStatus.trim().toLowerCase() === 'paid') {
+                    displayStatus = 'Pending';
+                    badgeColorClass = "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800";
+                } else if (displayStatus.trim().toLowerCase() === 'pending' || displayStatus.trim().toLowerCase() === 'pending payment') {
+                    badgeColorClass = "text-amber-600 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800";
+                } else if (displayStatus.trim().toLowerCase() === 'payment failed') {
+                    badgeColorClass = "text-red-600 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800";
+                } else if (displayStatus.trim().toLowerCase() === 'cancelled') {
+                    badgeColorClass = "text-rose-600 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800";
+                } else if (displayStatus.trim().toLowerCase() === 'delivered') {
+                    badgeColorClass = "text-green-600 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800";
+                } else if (displayStatus.trim().toLowerCase() === 'returned') {
+                    badgeColorClass = "text-pink-600 bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-800";
+                } else if (displayStatus.trim().toLowerCase() === 'exchanged') {
+                    badgeColorClass = "text-orange-600 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800";
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center border-b pb-1.5 dark:border-gray-800">
+                        <span class="font-bold text-gray-500">Order: #...${key.substring(key.length-6)}</span>
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <span class="font-extrabold uppercase text-[10px] px-2.5 py-0.5 rounded-full ${badgeColorClass}">${displayStatus}</span>
+                            <button onclick="toggleOrderDetailExpansion('${key}')" class="text-gray-400 hover:text-blue-500 transition focus:outline-none p-1 shrink-0">
+                                <i class="fas fa-eye text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <p class="font-bold text-gray-600 dark:text-gray-300">Items Ordered:</p>
+                        <div class="pl-2 space-y-1 text-[11px] text-gray-500 dark:text-gray-400">
+                            ${o.cartItems ? o.cartItems.map(item => `<div>- ${item.name} (${item.size} / ${item.color}) x${item.qty}</div>`).join('') : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between text-gray-700 dark:text-gray-300 font-bold">
+                        <span>Total Price paid</span>
+                        <span>₹${o.totalPrice}</span>
+                    </div>
+
+                    ${timelineHTML ? `<div class="border-t dark:border-gray-800 pt-2.5 space-y-1.5">${timelineHTML}</div>` : ''}
+
+                    <div id="order-expansion-${key}" class="hidden pt-3 border-t dark:border-gray-800 space-y-2 mt-2 bg-gray-5/50 dark:bg-gray-800/40 p-2.5 rounded-lg text-[11px]">
+                        <p><span class="font-bold text-gray-400 uppercase text-[9px]">Payment Mode:</span> <span class="capitalize font-bold text-gray-700 dark:text-gray-300">${o.paymentMode || 'N/A'}</span></p>
+                        <p><span class="font-bold text-gray-400 uppercase text-[9px]">Receiver Details:</span> <span class="font-bold text-gray-700 dark:text-gray-300">${o.customerName || ''} (${o.customerPhone || ''})</span></p>
+                        <p><span class="font-bold text-gray-400 uppercase text-[9px]">Pincode:</span> <span class="font-bold text-gray-700 dark:text-gray-300">${o.customerPincode || ''}</span></p>
+                        <p><span class="font-bold text-gray-400 uppercase text-[9px]">Address details:</span> <span class="text-gray-500 dark:text-gray-400 whitespace-pre-line">${o.customerAddress || 'N/A'}</span></p>
+                    </div>
+
+                    ${actionButtonsHTML ? `<div class="border-t dark:border-gray-800 pt-2 mt-1.5 flex flex-col space-y-1">${actionButtonsHTML}</div>` : ''}
+                `;
+                list.appendChild(card);
+            });
+        };
+
+        window.cancelUserOrder = (key) => {
+            if (confirm("Are you sure you want to cancel this order?")) {
+                update(ref(db, `orders/${key}`), { status: 'Cancelled' })
+                    .then(() => {
+                        alert("Order cancelled successfully!");
+                        loadOrderHistory();
+                    });
+            }
+        };
+
+        window.requestOrderReturn = (key) => {
+            if (confirm("Are you sure you want to return this product?")) {
+                const todayStr = new Date().toISOString().split('T')[0];
+                update(ref(db, `orders/${key}`), { 
+                    status: 'Returned',
+                    returnedDate: todayStr
+                }).then(() => {
+                    alert("Return request submitted!");
+                    loadOrderHistory();
+                });
+            }
+        };
+
+        window.requestOrderExchange = (key) => {
+            if (confirm("Are you sure you want to exchange this product?")) {
+                const todayStr = new Date().toISOString().split('T')[0];
+                update(ref(db, `orders/${key}`), { 
+                    status: 'Exchanged',
+                    exchangedDate: todayStr
+                }).then(() => {
+                    alert("Exchange request submitted!");
+                    loadOrderHistory();
+                });
+            }
+        };
+
+        window.toggleOrderDetailExpansion = (key) => {
+            const container = document.getElementById(`order-expansion-${key}`);
+            if (container) {
+                container.classList.toggle('hidden');
+            }
+        };
+
+        window.saveNewAddressProfile = (event) => {
+            event.preventDefault();
+            const profile = {
+                title: document.getElementById('prof-title').value.trim(),
+                name: document.getElementById('prof-name').value.trim(),
+                phone: document.getElementById('prof-phone').value.trim(),
+                pincode: document.getElementById('prof-pin').value.trim(),
+                address: document.getElementById('prof-address').value.trim()
+            };
+
+            const saved = JSON.parse(localStorage.getItem('saved_customer_profiles')) || [];
+            saved.push(profile);
+            localStorage.setItem('saved_customer_profiles', JSON.stringify(saved));
+            
+            document.getElementById('address-profile-form').reset();
+            alert("Profile saved!");
+            renderSettingsProfilesList();
+        };
+
+        window.deleteAddressProfile = (index) => {
+            const saved = JSON.parse(localStorage.getItem('saved_customer_profiles')) || [];
+            saved.splice(index, 1);
+            localStorage.setItem('saved_customer_profiles', JSON.stringify(saved));
+            renderSettingsProfilesList();
+        };
+
+        function renderSettingsProfilesList() {
+            const list = document.getElementById('saved-profiles-list');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            const saved = JSON.parse(localStorage.getItem('saved_customer_profiles')) || [];
+            if (saved.length === 0) {
+                list.innerHTML = `<p class="text-center text-xs text-gray-400 py-6">No profiles saved yet.</p>`;
+                return;
+            }
+
+            saved.forEach((prof, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-gray-900 p-4 rounded-xl border dark:border-gray-800 text-xs space-y-1.5 shadow-sm";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center border-b pb-1 dark:border-gray-800">
+                        <span class="font-bold text-sm text-blue-600">${prof.title}</span>
+                        <button onclick="deleteAddressProfile(${idx})" class="text-red-500 font-bold">Delete</button>
+                    </div>
+                    <p class="font-bold dark:text-white">${prof.name} (${prof.phone})</p>
+                    <p class="text-gray-400 text-[11px]">${prof.address} - ${prof.pincode}</p>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        window.selectLanguageOption = (langCode) => {
+            localStorage.setItem('store_lang', langCode);
+            updateLangCheckmarks();
+            window.applyTranslations();
+            alert(`Language updated to ${langCode === 'hi' ? 'Hindi (हिन्दी)' : 'English'}`);
+            handleBackNavigation();
+        };
+
+        function updateLangCheckmarks() {
+            const activeLang = localStorage.getItem('store_lang') || 'en';
+            document.getElementById('lang-check-en').classList.add('hidden');
+            document.getElementById('lang-check-hi').classList.add('hidden');
+            if (activeLang === 'en') {
+                document.getElementById('lang-check-en').classList.remove('hidden');
+            } else {
+                document.getElementById('lang-check-hi').classList.remove('hidden');
+            }
+        }
+
+        window.selectThemeOption = (themeVal) => {
+            changeTheme(themeVal);
+            updateThemeCheckmarks();
+            handleBackNavigation();
+        };
+
+        function updateThemeCheckmarks() {
+            const activeTheme = localStorage.getItem('theme') || 'light';
+            document.getElementById('theme-check-light').classList.add('hidden');
+            document.getElementById('theme-check-dark').classList.add('hidden');
+            if (activeTheme === 'dark') {
+                document.getElementById('theme-check-dark').classList.remove('hidden');
+            } else {
+                document.getElementById('theme-check-light').classList.remove('hidden');
+            }
+        }
+
+        renderSettingsProfilesList();
+        updateLangCheckmarks();
+        updateThemeCheckmarks();
+        window.applyTranslations();
+
+        window.renderCartList = renderCartList;
+
+        // Ensure safe hook execution order during startup
+        if (typeof window.checkUrlAndVerify === 'function') {
+            window.checkUrlAndVerify();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedPhone = localStorage.getItem('cust-saved-phone');
+            if (savedPhone) {
+                document.getElementById('track-phone-input').value = savedPhone;
+            }
+
+            // Trigger URL verification for Cashfree redirection safely
+            if (typeof window.checkUrlAndVerify === 'function') {
+                window.checkUrlAndVerify();
+            }
+        });
+
+    </script>
+
+    <!-- NAVIGATION CONTROLLER & UTILITY LOGIC -->
+    <script>
+        let navigationHistory = [];
+        let currentActiveTab = "tab-home";
+
+        function handleBackNavigation() {
+            if (navigationHistory.length > 0) {
+                const previousPage = navigationHistory.pop();
+                
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+                document.getElementById(previousPage).classList.remove('hidden');
+                currentActiveTab = previousPage;
+
+                const currentLang = localStorage.getItem('store_lang') || 'en';
+
+                if(previousPage === "tab-home") {
+                    document.getElementById('global-back-btn').classList.add('hidden');
+                    document.getElementById('header-title').innerText = currentLang === 'hi' ? "ई-कार्ट स्टोर" : "E Cart Store";
+                    document.getElementById('bottom-nav-bar').classList.remove('hidden');
+                    updateBottomNavState('nav-home');
+                } else if(previousPage === "tab-settings") {
+                    document.getElementById('global-back-btn').classList.remove('hidden');
+                    document.getElementById('header-title').innerText = currentLang === 'hi' ? "सेटिंग्स पैनल" : "Settings Panel";
+                    document.getElementById('bottom-nav-bar').classList.remove('hidden'); 
+                    updateBottomNavState('nav-settings');
+                } else if(previousPage === "tab-cart") {
+                    document.getElementById('global-back-btn').classList.remove('hidden');
+                    document.getElementById('header-title').innerText = currentLang === 'hi' ? "शॉपिंग बैग" : "Shopping Bag";
+                    document.getElementById('bottom-nav-bar').classList.remove('hidden'); 
+                    updateBottomNavState('nav-cart');
+                    if (typeof window.renderCartList === 'function') {
+                        window.renderCartList();
+                    }
+                } else if(previousPage === "sub-support-desk-menu") {
+                    document.getElementById('global-back-btn').classList.remove('hidden');
+                    document.getElementById('header-title').innerText = currentLang === 'hi' ? "सहायता डेस्क" : "Support Desk";
+                    document.getElementById('bottom-nav-bar').classList.add('hidden'); 
+                } else {
+                    document.getElementById('bottom-nav-bar').classList.add('hidden');
+                }
+            } else {
+                goBackToHome();
+            }
+        }
+
+        function openFullScreenPage(pageId, title) {
+            navigationHistory.push(currentActiveTab);
+            document.getElementById(currentActiveTab).classList.add('hidden');
+            document.getElementById(pageId).classList.remove('hidden');
+            currentActiveTab = pageId;
+
+            document.getElementById('global-back-btn').classList.remove('hidden');
+            document.getElementById('header-title').innerText = title;
+            document.getElementById('bottom-nav-bar').classList.add('hidden'); 
+        }
+
+        function openSubFullScreen(pageId, title) {
+            navigationHistory.push(currentActiveTab);
+            document.getElementById(currentActiveTab).classList.add('hidden');
+            document.getElementById(pageId).classList.remove('hidden');
+            currentActiveTab = pageId;
+
+            document.getElementById('global-back-btn').classList.remove('hidden');
+            document.getElementById('header-title').innerText = title;
+            document.getElementById('bottom-nav-bar').classList.add('hidden');
+        }
+
+        function goBackToHome() {
+            navigationHistory = [];
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById('tab-home').classList.remove('hidden');
+            currentActiveTab = "tab-home";
+
+            const currentLang = localStorage.getItem('store_lang') || 'en';
+            document.getElementById('global-back-btn').classList.add('hidden');
+            document.getElementById('header-title').innerText = currentLang === 'hi' ? "ई-कार्ट स्टोर" : "E Cart Store";
+            document.getElementById('bottom-nav-bar').classList.remove('hidden');
+            updateBottomNavState('nav-home');
+        }
+
+        function openFullScreenTab(tabId, title, btnId) {
+            navigationHistory = []; 
+            navigationHistory.push("tab-home"); 
+
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            currentActiveTab = tabId;
+
+            document.getElementById('global-back-btn').classList.remove('hidden');
+            document.getElementById('header-title').innerText = title;
+            document.getElementById('bottom-nav-bar').classList.remove('hidden'); 
+
+            updateBottomNavState(btnId);
+
+            if (tabId === 'tab-cart' && typeof window.renderCartList === 'function') {
+                window.renderCartList();
+            }
+        }
+
+        function goToHome() {
+            goBackToHome();
+        }
+
+        function updateBottomNavState(activeBtnId) {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-blue-600');
+                btn.classList.add('text-gray-400');
+            });
+            document.getElementById(activeBtnId).classList.remove('text-gray-400');
+            document.getElementById(activeBtnId).classList.add('text-blue-600');
+        }
+
+        function toggleModal(id) {
+            document.getElementById(id).classList.toggle('hidden');
+        }
+
+        function changeTheme(themeValue) {
+            const html = document.getElementById('app-html');
+            if (themeValue === 'dark') {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const html = document.getElementById('app-html');
+            if (savedTheme === 'dark') {
+                html.classList.add('dark');
+            } else {
+                html.classList.remove('dark');
+            }
+        });
+    </script>
+</body>
+</html>
