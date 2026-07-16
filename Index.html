@@ -2140,5 +2140,31 @@
             }
         });
     </script>
+    // Cashfree initialized karein (Aapne SDK pehle hi script tag me add kiya hua hai)
+const cashfree = Cashfree({
+    mode: "sandbox" // Live hone par "production" karein
+});
+
+// Jab user 'Buy Now' ya 'Checkout' button par click kare
+async function checkout() {
+    // 1. Apne local backend server se Payment Session ID mangwayein
+    const response = await fetch('http://localhost:5000/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    });
+    
+    const data = await response.json();
+    
+    if (data.payment_session_id) {
+        // 2. Session ID milte hi Cashfree ka payment gateway pop-up open karein
+        let checkoutOptions = {
+            paymentSessionId: data.payment_session_id,
+            redirectTarget: "_self" 
+        };
+        cashfree.checkout(checkoutOptions);
+    } else {
+        alert("Order create karne me dikkat aayi!");
+    }
+}
 </body>
 </html>
